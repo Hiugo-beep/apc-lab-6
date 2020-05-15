@@ -3,9 +3,33 @@
 #include <conio.h>
 #include <stdlib.h>
 
-void get_reg();//функция вывода регистра 60р
+void get_reg()//функция вывода регистра 60р
+{
+	system("cls");
+	char temp;
+	int i;
+	char number[4];
+	number[0]='0';
+	number[1]='x';
+	int x = inp(0x60);
+	for (i = 3; i>1; i--) //поделить по битам
+	{
+		temp = x % 16;
+		x /= 16;
+		if (temp >= 0 && temp <= 9) {
+			number[i] = temp + '0';
+		}
+		else {
+			number[i] = temp + 55;
+		}
+	}
+	printf("Print \'q\' for exit.\nReturn code:\n");
+	for(i=0;i<4;i++) printf("%c", number[i]);
+}
+
+
 void interrupt (*intOld09)(...); //IRQ1 прерывание от клаватуры
-void interrupt intNew09(...) { system("cls"); get_reg(); intOld09(); }//новый обработчик прерываний для клавиатуры
+void interrupt intNew09(...) { get_reg(); intOld09(); }//новый обработчик прерываний для клавиатуры
 
 
 
@@ -47,69 +71,56 @@ void play() {
 }
 
 void printReturnCode() {
-		intOld09 = getvect(0x09);
+	intOld09 = getvect(0x09);
 	_disable();//запретить прерывания 
    setvect(0x09 , intNew09);//новый обработчик прерываний
 	_enable();//разрешить прерывания 
+	while(inp(0x60)!=0x90);
+	system("cls");
+	rewind(stdin);
+        _disable();
+        setvect(0x09 , intOld09);
+        _enable();
 }
 
-void get_reg()//получить состояние регистров
-{
-	char temp;
-	int i;
-	char number[4];
-	number[0]='0';
-	number[1]='x';
-	int x = inp(0x60);
-	for (i = 3; i>1; i--) //поделить по битам
-	{
-		temp = x % 16;
-		x /= 16;
-		if (temp >= 0 && temp <= 9) {
-			number[i] = temp + '0';
-		}
-		else {
-			number[i] = temp + 55;
-		}
-	}
-	printf("Print \'q\' for exit.\nReturn code:\n");
-	for(i=0;i<4;i++) printf("%c", number[i]);
-}
 
 
 int main() {
+	int press2 = 0;
 	char selection;
-	while (1) {
 		printf("1: Flashing keyboard indicatoprs\n");
 		printf("2: Display return codes on hexidecimal form\n");
 		printf("3: Exit(e)\n\n");
+	while (1) {
+		rewind(stdin);
 		selection = getch();
-
-		switch (selection) {
-			case '1':
-				play();
-				break;
-			case '2':
-				system("cls");
-				printReturnCode();
-				char k;
-				do {
-					k = getch();
-				} while(k!='q');
-				system("cls");
-        	_disable();//запретить прерывания (cli
-          setvect(0x09 , intOld09);
-        	_enable();//разрешить прерывания (sti)
-				break;
-			case '3':
-				printf("Exiting...");
-				return 0;
-			case 'e':
-				printf("Exiting...");
-				return 0;
-			default:
-				printf("Error key! Please try again\n");
-				break;
+		if(press2==1) {
+			if(selection == 'q') 
+				press2 = 0;	
+		}
+		else if(selection == '1' || selection == '2' || selection == '3' || selection == 'e') {
+			switch (selection) {
+				case '1':
+					play();
+					break;
+				case '2':
+					system("cls");
+					printReturnCode();
+					press2 = 1;
+					break;
+				case '3':
+					printf("Exiting...");
+					return 0;
+				case 'e':
+					printf("Exiting...");
+					return 0;
+				default:
+					printf("Error key! Please try again\n");
+					break;
+			}
+		printf("1: Flashing keyboard indicatoprs\n");
+		printf("2: Display return codes on hexidecimal form\n");
+		printf("3: Exit(e)\n\n");
 		}
 	}
 }
